@@ -10,7 +10,7 @@ app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
 
 // Routes
 app.get('/', (req, res) => {
-  res.json({ message: 'Hello, World!' });
+  res.json({ message: 'Server Running!' });
 });
 
 app.get('/health', (req, res) => {
