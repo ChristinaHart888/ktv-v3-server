@@ -24,12 +24,16 @@ router.get('/users', (req, res) => {
   res.json({ message: 'All accounts endpoint' });
 });
 
-router.get('/login', (req, res) => {
-  const { email, password } = req.query;
+router.post('/login', (req, res) => {
+  const { email, password } = req.body;
   //Handle login logic here (e.g., authenticate user)
   //1. Validate input data
   //    a. Check for required fields (e.g., email, password)
+  if (!email || !password) {
+    return res.status(400).json({ message: 'Email and password are required' });
+  }
   //2. Fetch user from database based on email
+
   //3. Compare hashed password
   //4. Generate authentication token (e.g., JWT)
   //5a. Handle errors (e.g., invalid credentials, user not found)
@@ -37,16 +41,37 @@ router.get('/login', (req, res) => {
   res.json({ message: 'Login endpoint', email, password });
 });
 
-router.post('/user', (req, res) => {
+router.post('/user', async (req, res) => {
   const accountData = req.body;
   //Handle account creation logic here (e.g., save to database)
   //1. Validate input data
   //    a. Check for required fields (e.g., username, password, email)
+  if (!accountData.username || !accountData.password || !accountData.email) {
+    return res.status(400).json({ message: 'Username, password, and email are required' });
+  }
   //    b. Validate email format
-  //2. Check if user already exists
-  //3. Hash password
-  //4. Save user to database
-  res.json({ message: 'Account created', data: accountData });
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(accountData.email)) {
+    return res.status(400).json({ message: 'Invalid email format' });
+  }
+  try {
+    const userCredentials = await auth.createUserWithEmailAndPassword(accountData.email, accountData.password);
+    return res.json({ message: 'Account created', userId: userCredentials.user.uid });
+  } catch (error) {
+    console.error('Error creating user:', error);
+    switch (error.code) {
+      case 'auth/email-already-in-use':
+        return res.status(409).json({ message: 'Email already in use' });
+      case 'auth/invalid-email':
+        return res.status(400).json({ message: 'Invalid email' });
+      case 'auth/operation-not-allowed':
+        return res.status(403).json({ message: 'Operation not allowed' });
+      case 'auth/weak-password':
+        return res.status(400).json({ message: 'Weak password' });
+      default:
+        return res.status(500).json({ message: 'Error creating user' });
+    }
+  }
 });
 
 router.put('/user', (req, res) => {
